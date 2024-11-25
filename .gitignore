@@ -1,0 +1,75 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment directories
+venv/
+env/
+
+# Environment variables file
+.env
+
+# Byte-compiled and intermediate Python files
+*.pyd
+*.pyo
+*.so
+
+# Distribution files
+dist/
+build/
+*.egg-info/
+
+# Logs and debug files
+*.log
+*.pot
+*.pid
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.swp
+*.swo
+*~
+
+# Aiogram specific
+config.py   # If your project has sensitive config
+sessions/   # If you're storing bot sessions locally
+
+# SQLite database files (if used)
+*.sqlite3
+
+# Testing outputs
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Compiled Python files
+*.egg
+.eggs/
+
+# Mypy type checking
+.mypy_cache/
+
+# Black formatter
+.ipynb_checkpoints/
+
+# Jupyter Notebook checkpoints
+*.nbconvert/
+
+# Node modules (if using JS dependencies)
+node_modules/
+
+# Python-specific tools
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Additional OS files
+*.stackdump

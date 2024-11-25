@@ -1,0 +1,36 @@
+# to create zakaz_table
+CREATE TABLE zakaz_products (
+    id SERIAL PRIMARY KEY,              
+    product_name VARCHAR(255),          
+    product_count INTEGER,              
+    product_price NUMERIC(10, 2),       
+    client_phone_number VARCHAR(15),    
+    client_full_name VARCHAR(255),      
+    payment_choice VARCHAR(50),         
+    product_description TEXT,           
+    is_active BOOL default True,
+	status BOOL NULL,
+    created_at TIMESTAMP DEFAULT NOW(), 
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+# to create another table
+CREATE TABLE user_products (
+    id SERIAL PRIMARY KEY,
+    product_name VARCHAR(255)
+)
+
+
+# to insert data to user_produts
+INSERT INTO user_products (product_name) 
+VALUES 
+    ('Pampers'),
+    ('Kitob'),
+    ('Telefon'),
+    ('Noutbuk'),
+    ('Disk'),
+    ('Ruchka'),
+    ('Qalam'),
+    ('Daftar'),
+    ('Sumka'),
+    ('Televizor');
