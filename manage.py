@@ -300,34 +300,40 @@ async def receive_product_description(message: Message, state: FSMContext):
     try:
         await state.update_data({'product_description': message.text})
         data = await state.get_data()
-        returning_messages = []
-        check = False
-        for i in data['products']:
-            temp = {
-                'product_name': i['name'],
-                'product_count': i['count'],
-                'product_price': i['price'] * i['count'],
-                'client_phone_number': data['client_phone_number'],
-                'client_full_name': data['client_full_name'],
-                'payment_choice': data['payment_choice'],
-                'product_description': data['product_description']
-            }
-            success = insert_data(temp)
-            if success['success'] == True:
-                check = True
-                current_date = datetime.datetime.now().date()
-                returned_id = success['returned_id']
-                returning_message = f"#Zakaz_{returned_id}\n{current_date}\n\n📦 Mahsulot: {i['name']}\n🔢 Soni: {i['count']} ta\n💰 Narxi: {i['price']}\n💰Umumiy_narx: {i['price'] * i['count']}\n💳 To'lov turi: {data['payment_choice']}\n📱Telefon raqam: {data['client_phone_number']}\n🤵 Mijoz: {data['client_full_name']}\n📝 Izoh: {data['product_description']}"
-                returning_messages.append(returning_message)
+        
+        combined_product_name = ", ".join([p['name'] for p in data['products']])
+        combined_product_count = ", ".join(str(p['count']) for p in data['products'])
+        combined_product_price = ", ".join(str(p['price'] * p['count']) for p in data['products'])
 
-        if check is True:
-            await message.answer('Zakaz muvaffaqiyatli qabul qilindi')
-            for m in returning_messages: 
-                await send_message(m)
+        temp = {
+            "product_name": combined_product_name,
+            "product_count": combined_product_count,
+            "product_price": combined_product_price,
+            "client_phone_number": data["client_phone_number"],
+            "client_full_name": data["client_full_name"],
+            "payment_choice": data["payment_choice"],
+            "product_description": data["product_description"]
+        }
+        success = insert_data(temp)
+        if success['success'] is True:
+            returned_id = success['returned_id']
+            current_date = datetime.datetime.now().date()
+            returning_message = f"#Zakaz_{returned_id}\n{current_date}\n"
+            
+            for i in data['products']:
+            
+                returning_message += f"\n📦 Mahsulot: {i['name']}\n🔢 Soni: {i['count']} ta\n💰 Narxi: {i['price']}\n💰Umumiy narx: {i['price'] * i['count']}\n"
+            
+            returning_message += f"\n💳 To'lov turi: {data['payment_choice']}\n📱Telefon raqam: {data['client_phone_number']}\n🤵 Mijoz: {data['client_full_name']}\n📝 Izoh: {data['product_description']}" 
+            await send_message(returning_message)
+            await message.answer('Mahsulot muvaffaqiyatli qabul qilindi')
+            await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+            await state.clear()
+        else:
+            await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
             await state.clear()
             await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-            return
-
+        
     except Exception:
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
         await state.set_state(ProductDetailState.product_description)
@@ -372,9 +378,38 @@ async def confirm_selection(callback_query: types.CallbackQuery, state: FSMConte
         await state.clear()
         await callback_query.message.answer('Kerakli xizmatni tanlang', reply_markup=serving_options())
         return
+    
     for product in read_all_data()['data']:
         if f"{product['product_id']} - {product['client_full_name']}" == selected_products[0]:
-            await callback_query.message.answer(f"📦 Mahsulot: {product['product_name']}\n🔢 Soni: {product['product_count']}\n💰 Narxi: {product['product_price']}\n📱Telefon raqam: {product['client_phone_number']}0\n🤵 Mijoz: {product['client_full_name']}\n📝 Izoh: {product['product_description']}", reply_markup=create_confrim_cancel("❎ Mahsulotni bekor qilish", "↩️ Ortga qaytish", "canc", "conf"))
+            splitted_name = product['product_name'].split(', ')
+            splitted_count = product['product_count'].split(', ')
+            splitted_price = product['product_price'].split(', ')
+
+            returning_message = ""
+            for name, count, price in zip(splitted_name, splitted_count, splitted_price):
+                returning_message += (
+                    f"\n📦 Mahsulot: {name}\n"
+                    f"🔢 Soni: {count} ta\n"
+                    f"💰 Narxi: {price}\n"
+                    f"💰 Umumiy narx: {int(price) * int(count)}\n"
+                )
+
+            returning_message += (
+                f"\n💳 To'lov turi: {product['payment_choice']}\n"
+                f"📱Telefon raqam: {product['client_phone_number']}\n"
+                f"🤵 Mijoz: {product['client_full_name']}\n"
+                f"📝 Izoh: {product['product_description']}"
+            )
+
+            await callback_query.message.answer(
+                returning_message, 
+                reply_markup=create_confrim_cancel(
+                    "❎ Mahsulotni bekor qilish", 
+                    "↩️ Ortga qaytish", 
+                    "canc", 
+                    "conf"
+                )
+            )
             await state.update_data({'selected_products': selected_products, "product_id": product['product_id']})
             return
 
@@ -450,7 +485,35 @@ async def confirm_qarz(callback_query: types.CallbackQuery, state: FSMContext):
     
     for product in read_qarz_data()['data']:
         if f"{product['product_id']} - {product['client_full_name']}" == selected_products[0]:
-            await callback_query.message.answer(f"📦 Mahsulot: {product['product_name']}\n🔢 Soni: {product['product_count']}\n💰 Narxi: {product['product_price']}\n📱Telefon raqam: {product['client_phone_number']}0\n🤵 Mijoz: {product['client_full_name']}\n📝 Izoh: {product['product_description']}", reply_markup=create_confrim_cancel("❎ Qarzdorlikdan olib tashlash", "↩️ Ortga qaytish", "cancel_product", "confirm_process"))
+            splitted_name = product['product_name'].split(', ')
+            splitted_count = product['product_count'].split(', ')
+            splitted_price = product['product_price'].split(', ')
+
+            returning_message = ""
+            for name, count, price in zip(splitted_name, splitted_count, splitted_price):
+                returning_message += (
+                    f"\n📦 Mahsulot: {name}\n"
+                    f"🔢 Soni: {count} ta\n"
+                    f"💰 Narxi: {price}\n"
+                    f"💰 Umumiy narx: {int(price) * int(count)}\n"
+                )
+
+            returning_message += (
+                f"\n💳 To'lov turi: {product['payment_choice']}\n"
+                f"📱Telefon raqam: {product['client_phone_number']}\n"
+                f"🤵 Mijoz: {product['client_full_name']}\n"
+                f"📝 Izoh: {product['product_description']}"
+            )
+
+            await callback_query.message.answer(
+                returning_message, 
+                reply_markup=create_confrim_cancel(
+                    "❎ Qarzdorlikdan olib tashlash", 
+                    "↩️ Ortga qaytish", 
+                    "cancel_product", 
+                    "confirm_process"
+                )
+            )
             await state.update_data({'selected_products': selected_products, "product_id": product['product_id']})
             return
 
