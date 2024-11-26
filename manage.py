@@ -12,8 +12,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
 from state import ProductDetailState
-from analyze import insert_data, read_qarz_data, change_status_qarz, get_products, read_all_data, change_status_otkaz, get_analyzed_information
-from btn import payment_option, serving_options
+from analyze import insert_data, read_qarz_data, change_status_qarz, get_products, read_all_data, change_status_otkaz, get_analyzed_information, insert_data_to_products, delete_data_from_products, get_sorted_data
+from btn import payment_option, serving_options, product_editing
 
 load_dotenv()
 
@@ -23,6 +23,7 @@ ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID')
 user_otkaz_selection = {}
 user_qarz_selection = {}
 user_zakaz_selection = {}
+user_product_selection = {}
 
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -84,6 +85,24 @@ def create_qarz_keyboard(selected_products):
     keyboard.append([
         InlineKeyboardButton(text="✅ Tasdiqlash", callback_data='confirm_qarz'),
         InlineKeyboardButton(text="❌ Bekor qilish", callback_data='cancel_qarz')
+    ])
+    
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def create_products_keyboard(selected_products):
+    products = get_products()
+    keyboard = []
+    keys = []
+
+    for product in products:
+        status = "✅" if product in selected_products else "➕"
+        keys.append(InlineKeyboardButton(text=f"{status} {product}", callback_data=f"mahsulot_{product}"))
+        keyboard.append(keys)
+        keys = []
+    
+    keyboard.append([
+        InlineKeyboardButton(text="✅ Tasdiqlash", callback_data='confirm_mahsulot'),
+        InlineKeyboardButton(text="❌ Bekor qilish", callback_data='cancel_mahsulot')
     ])
     
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -634,6 +653,108 @@ async def process_day_callback(callback_query: types.CallbackQuery):
         )
 
 
+# PRODUCTS
+@dp.message(lambda msg: msg.text == 'Mahsulotlar')
+async def ask_for_choice(message: Message):
+    try:
+        await message.answer("Mahsulot uchun amalni tanlang", reply_markup=product_editing())
+    except Exception:
+        await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi")
+        await message.anser("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
+@dp.message(lambda msg: msg.text == "➕ Mahsulot qo'shish")
+async def add_product(message: Message, state: FSMContext):
+    try:
+        await message.answer("Yangi mahsulot nomini yuboring")
+        await state.set_state(ProductDetailState.new_product_name)
+    except Exception:
+        await message.answer("Kechirasiz dasturda biror xatolik yuz berdi")
+        await ask_for_choice(message)
+
+@dp.message(ProductDetailState.new_product_name)
+async def receive_new_product_name(message: Message, state: FSMContext):
+    try:
+        new_product_name = message.text
+        success = insert_data_to_products(new_product_name)
+        if success['success'] is True:
+            await message.answer("Yangi mahsulot muvaffaqiyatli saqlandi")
+            await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+            await state.clear()
+        else:
+            await message.answer("Kechirasiz dasturda biror xatolik yuz berdi")
+            await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+            await state.clear()
+    except Exception as e:
+        print(f'{e}')
+        await message.answer("Kechirasiz dasturda biror xatolik yuz berdi")        
+        await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
+
+
+@dp.message(lambda msg: msg.text == "➖ Mahsulotni o'chirish")
+async def mahsulot_(message: Message, state: FSMContext):
+    try:
+        products = get_products()
+        if not products:
+            await message.answer("Xozirda mahsulotlar mavjud emas")
+            await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
+            await state.clear()
+            return
+        
+        user_product_selection[message.chat.id] = []
+        keyboard = create_products_keyboard(user_product_selection[message.chat.id])
+        await message.answer("O'chirmoqchi bo'lgan mahsulotni tanlang", reply_markup=keyboard)
+
+    except Exception:
+        await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
+        await state.clear()
+        await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
+        
+@dp.callback_query(lambda c: c.data.startswith("mahsulot_"))
+async def qarz_product(callback_query: types.CallbackQuery):
+    user_id = callback_query.message.chat.id
+    product_name = callback_query.data.split("_", 1)[1]
+
+    user_product_selection[user_id] = [product_name] if product_name not in user_product_selection[user_id] else []
+
+    keyboard = create_products_keyboard(user_product_selection[user_id])
+    
+    await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+
+@dp.callback_query(lambda c: c.data == 'confirm_mahsulot')
+async def confirm_mahs(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.delete()
+    user_id = callback_query.message.chat.id
+    selected_products = user_product_selection.get(user_id, [])
+    if not selected_products:
+        await callback_query.answer("Mahsulot tanlanmadi!", show_alert=True)
+        await state.clear()
+        await callback_query.message.answer('Kerakli xizmatni tanlang', reply_markup=serving_options())
+        return
+    
+    datas = get_sorted_data()
+    if datas['success'] is True:
+        for data in datas['sorted']:
+            if data['product_name'] == selected_products[0]:
+                succes = delete_data_from_products(data['product_id'])
+                if succes['success'] is True:
+                    await callback_query.message.answer("Mahsulot muvaffaqiyatli o'chirib tashlandi")
+                    await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+                    await state.clear()
+                else:
+                    await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi")
+                    await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+                    await state.clear()
+    else:
+        await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi")
+        await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
+@dp.callback_query(lambda c: c.data == 'cancel_mahsulot')
+async def cancel_mahsulot(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.delete()
+    await callback_query.answer("Bekor qilindi", show_alert=True)
+    await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+    await state.clear()
 
 
 async def main():

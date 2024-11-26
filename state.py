@@ -24,3 +24,4 @@ class ProductDetailState(StatesGroup):
     payment_choice = State()
     product_description = State()
     client_full_name = State()
+    new_product_name = State()

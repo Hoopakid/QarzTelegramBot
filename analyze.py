@@ -24,6 +24,45 @@ def connection():
     )
     return conn
 
+def insert_data_to_products(product_name):
+    conn = connection()
+    cursor = conn.cursor(cursor_factory=extras.DictCursor)
+    try:
+        query = "INSERT INTO user_products (product_name) VALUES (%s)"
+        cursor.execute(query, (product_name, ))
+        conn.commit()
+        conn.close()
+        return {'success': True}
+    except Exception:
+        return {'success': False}
+
+def delete_data_from_products(product_id):
+    conn = connection()
+    cursor = conn.cursor(cursor_factory=extras.DictCursor)
+    try:
+        query = "DELETE FROM user_products WHERE id::integer = %s"
+        cursor.execute(query, (product_id,))
+        conn.commit()
+        conn.close()
+        return {'success': True}
+    except Exception: 
+        return {'success': False}
+
+def get_sorted_data():
+    conn = connection()
+    cursor = conn.cursor(cursor_factory=extras.DictCursor)
+    try:
+        query = "SELECT * FROM user_products"
+        cursor.execute(query)
+        datas = cursor.fetchall()
+        sorted_ = []
+        for data in datas:
+            sorted_.append({'product_id': data[0], 'product_name': data[1]})
+        conn.close()
+        return {'success': True, 'sorted': sorted_}
+    except Exception:
+        return {'success': False, 'sorted': None}
+
 def insert_data(product_data: dict):
     conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
