@@ -31,23 +31,7 @@ def insert_data(product_data: dict):
     try:
         if product_data.get('payment_choice') == 'Qarzga berish':
             insert_query = """
-                INSERT INTO zakaz_products (product_name, product_count, product_price, client_phone_number, client_full_name, payment_choice, product_description, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-            """
-            cursor.execute(insert_query, (
-                product_data.get('product_name'),
-                product_data.get('product_count'),
-                product_data.get('product_price'),
-                product_data.get('client_phone_number'),
-                product_data.get('client_full_name'),
-                product_data.get('payment_choice'),
-                product_data.get('product_description'),
-                False
-            ))
-        else:
-            insert_query = """
-                INSERT INTO zakaz_products (product_name, product_count, product_price, client_phone_number, client_full_name, payment_choice, product_description)
+                INSERT INTO zakaz_products (product_name, product_count, product_price, client_phone_number, client_full_name, payment_choice, status)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
@@ -58,7 +42,21 @@ def insert_data(product_data: dict):
                 product_data.get('client_phone_number'),
                 product_data.get('client_full_name'),
                 product_data.get('payment_choice'),
-                product_data.get('product_description')
+                False
+            ))
+        else:
+            insert_query = """
+                INSERT INTO zakaz_products (product_name, product_count, product_price, client_phone_number, client_full_name, payment_choice)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            cursor.execute(insert_query, (
+                product_data.get('product_name'),
+                product_data.get('product_count'),
+                product_data.get('product_price'),
+                product_data.get('client_phone_number'),
+                product_data.get('client_full_name'),
+                product_data.get('payment_choice')
             ))
         returned_id = cursor.fetchone()['id']
         conn.commit() 
@@ -99,7 +97,6 @@ def read_qarz_data():
                 'client_full_name': row['client_full_name'],
                 'client_phone_number': row['client_phone_number'],
                 'payment_choice': row['payment_choice'],
-                'product_description': row['product_description'],
                 'status': row['status'],
             })
     except Exception as e:
@@ -142,7 +139,6 @@ def read_all_data():
                 'client_full_name': row['client_full_name'],
                 'client_phone_number': row['client_phone_number'],
                 'payment_choice': row['payment_choice'],
-                'product_description': row['product_description'],
                 'status': row['status'],
             })
     except Exception as e:
@@ -175,7 +171,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
     if is_today:
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name, product_description
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
             FROM zakaz_products 
             WHERE created_at >= %s
             """
@@ -186,7 +182,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         today = datetime.now()
         monday = (today - timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name, product_description
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
             """
@@ -197,7 +193,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         today = datetime.now()
         first_day_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name, product_description
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
             """
@@ -214,7 +210,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         end_of_day = start_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name, product_description
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
         """
@@ -226,7 +222,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
     
     # Convert data to DataFrame
     df = pd.DataFrame(data, columns=[
-        'id', 'product_name', 'product_count', 'product_price', 'payment_choice', 'is_active', 'client_phone_number', 'client_full_name', 'product_description'])
+        'id', 'product_name', 'product_count', 'product_price', 'payment_choice', 'is_active', 'client_phone_number', 'client_full_name'])
 
     # Create a new column with a list of products by splitting the product names
     df['product_names_split'] = df['product_name'].apply(lambda x: x.split(', '))
@@ -252,7 +248,6 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
     payment_counts = df['payment_choice'].value_counts().to_dict()
     client_phone = df['client_phone_number'].iloc[0]  # Assuming all records have the same phone number
     client_name = df['client_full_name'].iloc[0]  # Assuming all records have the same client name
-    product_description = df['product_description'].iloc[0]  # Assuming all records have the same description
 
     # Summing up the total price for all products
     total_price = (df['product_price'] * df['product_count']).sum()
@@ -268,7 +263,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
     for payment, count in payment_counts.items():
         message += f"\n\t\t{payment}: {count} ta"
     
-    message += f"\n\n📱 Telefon raqam: {client_phone}\n🤵 Mijoz: {client_name}\n📝 Izoh: {product_description}"
+    message += f"\n\n📱 Telefon raqam: {client_phone}\n🤵 Mijoz: {client_name}"
 
     return {"success": True, "message": message}
 
@@ -276,14 +271,14 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
 from collections import defaultdict
 
 def get_analyzed_information(is_today=False, is_week=False, is_month=False, start_date=False, starting_date=None):
-    conn = connection()  # Assuming `connection` is defined elsewhere
+    conn = connection() 
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
     data = []
 
     if is_today:
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name, product_description
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
             FROM zakaz_products 
             WHERE created_at >= %s
             """
@@ -294,7 +289,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         today = datetime.now()
         monday = (today - timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name, product_description
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
             """
@@ -305,7 +300,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         today = datetime.now()
         first_day_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name, product_description
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
             """
@@ -322,7 +317,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         end_of_day = start_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name, product_description
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
         """
@@ -334,7 +329,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
     
     df = pd.DataFrame(data, columns=[
         'id', 'product_name', 'product_count', 'product_price', 'payment_choice', 'is_active', 
-        'client_phone_number', 'client_full_name', 'product_description'])
+        'client_phone_number', 'client_full_name'])
 
     df['product_names_split'] = df['product_name'].apply(lambda x: x.split(', '))
     df['product_counts_split'] = df['product_count'].apply(lambda x: list(map(int, x.split(', '))))
