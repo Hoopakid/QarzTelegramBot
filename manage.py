@@ -28,11 +28,10 @@ user_product_selection = {}
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-products = get_products()
-
 def create_inline_keyboard(selected_products):
     keyboard = []
     keys = []
+    products = get_products()
 
     for index, product in enumerate(products, start=1):
         status = "✅" if product in selected_products else "➕"
