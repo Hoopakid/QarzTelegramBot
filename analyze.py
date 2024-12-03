@@ -63,6 +63,7 @@ def get_sorted_data():
     except Exception:
         return {'success': False, 'sorted': None}
 
+
 def insert_data(product_data: dict):
     conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
@@ -70,32 +71,42 @@ def insert_data(product_data: dict):
     try:
         if product_data.get('payment_choice') == 'Qarzga berish':
             insert_query = """
-                INSERT INTO zakaz_products (product_name, product_count, product_price, client_phone_number, client_full_name, payment_choice, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO zakaz_products (product_name, product_count, product_per_price, product_price, product_description, client_phone_number, client_enterprise, payment_choice, qarzdorlik_description, contract_number, enterprise_name, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
             cursor.execute(insert_query, (
                 product_data.get('product_name'),
                 product_data.get('product_count'),
+                product_data.get('product_per_price'),
                 product_data.get('product_price'),
+                product_data.get('product_description'),
                 product_data.get('client_phone_number'),
-                product_data.get('client_full_name'),
+                product_data.get('client_enterprise'),
                 product_data.get('payment_choice'),
+                product_data.get('qarzdorlik_description'),
+                product_data.get('contract_number'),
+                product_data.get('enterprise_name'),
                 False
             ))
         else:
             insert_query = """
-                INSERT INTO zakaz_products (product_name, product_count, product_price, client_phone_number, client_full_name, payment_choice)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO zakaz_products (product_name, product_count, product_per_price, product_price, product_description, client_phone_number, client_enterprise, payment_choice, qarzdorlik_description, contract_number, enterprise_name)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
             cursor.execute(insert_query, (
                 product_data.get('product_name'),
                 product_data.get('product_count'),
+                product_data.get('product_per_price'),
                 product_data.get('product_price'),
+                product_data.get('product_description'),
                 product_data.get('client_phone_number'),
-                product_data.get('client_full_name'),
-                product_data.get('payment_choice')
+                product_data.get('client_enterprise'),
+                product_data.get('payment_choice'),
+                product_data.get('qarzdorlik_description'),
+                product_data.get('contract_number'),
+                product_data.get('enterprise_name')
             ))
         returned_id = cursor.fetchone()['id']
         conn.commit() 
@@ -108,6 +119,27 @@ def insert_data(product_data: dict):
         conn.close()
     return {"success": True, "returned_id": returned_id}
     
+def get_product_by_id(product_id: int):
+    conn = connection()
+    cursor = conn.cursor(cursor_factory=extras.DictCursor)
+    get_query = "SELECT * FROM zakaz_products WHERE id = %s AND is_active = %s"
+    cursor.execute(get_query, (product_id, True))
+    product = cursor.fetchone()
+    if product is not None:
+        return {"success": True, "product": dict(product)}
+    return {"success": False}
+
+
+def get_qarz_product_by_id(product_id: int):
+    conn = connection()
+    cursor = conn.cursor(cursor_factory=extras.DictCursor)
+    get_query = "SELECT * FROM zakaz_products WHERE id = %s AND status = %s"
+    cursor.execute(get_query, (product_id, False))
+    product = cursor.fetchone()
+    if product is not None:
+        return {"success": True, "product": dict(product)}
+    return {"success": False}
+
 
 def get_products():
     conn = connection()
@@ -120,32 +152,42 @@ def get_products():
 
 def read_qarz_data():
     conn = connection()
-    data = []
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
     try:
         get_query = "SELECT * FROM zakaz_products WHERE status = %s"
         cursor.execute(get_query, (False,))
-        temp = cursor.fetchall()
-
-        for k, row in enumerate(temp):
-            data.append({
-                'product_id': row['id'],
-                'product_name': row['product_name'],
-                'product_count': row['product_count'],
-                'product_price': row['product_price'],
-                'client_full_name': row['client_full_name'],
-                'client_phone_number': row['client_phone_number'],
-                'payment_choice': row['payment_choice'],
-                'status': row['status'],
-            })
+        temp = cursor.fetchone()
+        if temp is not None:
+            return {'success': True, 'data': dict(temp)}
     except Exception as e:
         print(f"Error: {e}")
         return {'success': False, 'data': []}
-    finally:
-        cursor.close()
-        conn.close()
 
-    return {'success': True, 'data': data}
+def get_only_product(product_id):
+    conn = connection()
+    cursor = conn.cursor(cursor_factory=extras.DictCursor)
+    try:
+        get_query = "SELECT * FROM zakaz_products WHERE id = %s"
+        cursor.execute(get_query, (product_id,))
+        temp = cursor.fetchone()
+        if temp is not None:
+            return {'success': True, 'data': dict(temp)}
+    except Exception as e:
+        print(f"Error: {e}")
+        return {'success': False, 'data': []}
+
+def insert_to_qarzdorlik(product_id, price):
+    conn = connection()
+    cursor = conn.cursor(cursor_factory=extras.DictCursor)
+    try:
+        add_query = "INSERT INTO qarz_statistics (zakaz_id, price) VALUES (%s, %s)"
+        cursor.execute(add_query, (product_id, price))
+        conn.commit()
+        return {'success': True}
+    except Exception as e:
+        print(f"Error: {e}")
+        return {'success': False}
+
 
 def change_status_qarz(product_id):
     conn = connection()
@@ -202,111 +244,6 @@ def change_status_otkaz(product_id):
         conn.close()
         return {'success': True}
 
-def get_analyzed_information(is_today=False, is_week=False, is_month=False, start_date=False, starting_date=None):
-    conn = connection()
-    cursor = conn.cursor(cursor_factory=extras.DictCursor)
-    data = []
-
-    if is_today:
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
-            FROM zakaz_products 
-            WHERE created_at >= %s
-            """
-        cursor.execute(query, (today,))
-        data = cursor.fetchall()
-
-    elif is_week:
-        today = datetime.now()
-        monday = (today - timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-        query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
-            FROM zakaz_products 
-            WHERE created_at >= %s AND created_at <= %s
-            """
-        cursor.execute(query, (monday, today))
-        data = cursor.fetchall()
-
-    elif is_month:
-        today = datetime.now()
-        first_day_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
-            FROM zakaz_products 
-            WHERE created_at >= %s AND created_at <= %s
-            """
-        cursor.execute(query, (first_day_of_month, today))
-        data = cursor.fetchall()
-
-    elif start_date is True and starting_date:
-        try:
-            start_date = datetime.strptime(starting_date, '%Y-%m-%d')
-        except ValueError as e:
-            return {"success": False, "message": "Invalid date format"}
-        
-        start_of_day = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_of_day = start_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-
-        query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
-            FROM zakaz_products 
-            WHERE created_at >= %s AND created_at <= %s
-        """
-        cursor.execute(query, (start_of_day, end_of_day))
-        data = cursor.fetchall()
-
-    if not data:
-        return {"success": False, 'message': 'No data found for this date range'}
-    
-    # Convert data to DataFrame
-    df = pd.DataFrame(data, columns=[
-        'id', 'product_name', 'product_count', 'product_price', 'payment_choice', 'is_active', 'client_phone_number', 'client_full_name'])
-
-    # Create a new column with a list of products by splitting the product names
-    df['product_names_split'] = df['product_name'].apply(lambda x: x.split(', '))
-
-    # Create a new column with a list of counts by splitting the product counts
-    df['product_counts_split'] = df['product_count'].apply(lambda x: list(map(int, x.split(', '))))
-
-    # Flatten the lists for product names and their corresponding counts
-    flattened_products = []
-    for i, row in df.iterrows():
-        product_names = row['product_names_split']
-        product_counts = row['product_counts_split']
-        for product, count in zip(product_names, product_counts):
-            flattened_products.append((product, count))
-
-    # Aggregate product counts across all rows
-    from collections import defaultdict
-    product_summary = defaultdict(int)
-    for product, count in flattened_products:
-        product_summary[product] += count
-
-    # Collect other data for the message
-    payment_counts = df['payment_choice'].value_counts().to_dict()
-    client_phone = df['client_phone_number'].iloc[0]  # Assuming all records have the same phone number
-    client_name = df['client_full_name'].iloc[0]  # Assuming all records have the same client name
-
-    # Summing up the total price for all products
-    total_price = (df['product_price'] * df['product_count']).sum()
-
-    # Create the message with total product counts and other information
-    message = f"📅 Period Summary:\n\n💰 Jami Narx: {total_price}\n📦 Zakazlar soni: {len(df)}\n❎ Bekor qilingan: {(df['is_active'] == False).sum()}\n\n📝 Mahsulotlar kesimida:"
-    
-    for product, total_count in product_summary.items():
-        message += f"\n\t\t{product}: {total_count} ta"
-    
-    message += "\n\n📝 To'lov turlari kesimida:"
-    
-    for payment, count in payment_counts.items():
-        message += f"\n\t\t{payment}: {count} ta"
-    
-    message += f"\n\n📱 Telefon raqam: {client_phone}\n🤵 Mijoz: {client_name}"
-
-    return {"success": True, "message": message}
-
-
 from collections import defaultdict
 
 def get_analyzed_information(is_today=False, is_week=False, is_month=False, start_date=False, starting_date=None):
@@ -317,7 +254,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
     if is_today:
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, enterprise_name
             FROM zakaz_products 
             WHERE created_at >= %s
             """
@@ -328,7 +265,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         today = datetime.now()
         monday = (today - timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, enterprise_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
             """
@@ -339,7 +276,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         today = datetime.now()
         first_day_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, enterprise_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
             """
@@ -356,7 +293,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         end_of_day = start_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
         query = """
-            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, client_full_name
+            SELECT id, product_name, product_count, product_price, payment_choice, is_active, client_phone_number, enterprise_name
             FROM zakaz_products 
             WHERE created_at >= %s AND created_at <= %s
         """
@@ -368,11 +305,11 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
     
     df = pd.DataFrame(data, columns=[
         'id', 'product_name', 'product_count', 'product_price', 'payment_choice', 'is_active', 
-        'client_phone_number', 'client_full_name'])
+        'client_phone_number', 'enterprise_name'])
 
-    df['product_names_split'] = df['product_name'].apply(lambda x: x.split(', '))
-    df['product_counts_split'] = df['product_count'].apply(lambda x: list(map(int, x.split(', '))))
-    df['product_price_split'] = df['product_price'].apply(lambda x: list(map(int, str(x).split(', '))))
+    df['product_names_split'] = df['product_name'].apply(lambda x: x.split('# '))
+    df['product_counts_split'] = df['product_count'].apply(lambda x: list(map(int, x.split('# '))))
+    df['product_price_split'] = df['product_price'].apply(lambda x: list(map(int, str(x).split('# '))))
 
     flattened_products = []
     for i, row in df.iterrows():
@@ -412,3 +349,53 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         message += f"\n\t\t{payment}: {count} ta"
 
     return {"success": True, "message": message}
+
+import pandas as pd
+
+def export_statistics_to_excel(data, file_name="statistics.xlsx"):
+    try:
+        if not data.get("success") or "message" not in data:
+            print("No valid data available to export.")
+            return {'success': False}
+
+        message = data['message']
+        product_summary = []
+        payment_summary = []
+
+        lines = message.splitlines()
+        for line in lines:
+            if "📝 Mahsulotlar kesimida:" in line:
+                start_index = lines.index(line) + 1
+                while start_index < len(lines) and not lines[start_index].startswith("📝 To'lov turlari kesimida:"):
+                    product_line = lines[start_index].strip()
+                    if product_line:
+                        product_name, product_count = map(str.strip, product_line.split(":"))
+                        product_summary.append({
+                            "Mahsulot nomi": product_name,
+                            "Soni": int(product_count.split(" ")[0])
+                        })
+                    start_index += 1
+            if "📝 To'lov turlari kesimida:" in line:
+                start_index = lines.index(line) + 1
+                while start_index < len(lines):
+                    payment_line = lines[start_index].strip()
+                    if payment_line:
+                        payment_type, payment_count = map(str.strip, payment_line.split(":"))
+                        payment_summary.append({
+                            "To'lov turi": payment_type,
+                            "Soni": int(payment_count.split(" ")[0])
+                        })
+                    start_index += 1
+        
+        df_product_summary = pd.DataFrame(product_summary)
+        df_payment_summary = pd.DataFrame(payment_summary)
+
+        absolute_path = os.path.abspath(file_name)
+        with pd.ExcelWriter(absolute_path, engine='openpyxl') as writer:
+            df_product_summary.to_excel(writer, sheet_name="Mahsulotlar", index=False)
+            df_payment_summary.to_excel(writer, sheet_name="To'lovlar", index=False)
+
+        return {'success': True, 'file_path': absolute_path}
+    except Exception as e:
+        print(f"Error occurred while exporting to Excel: {e}")
+        return {'success': False}

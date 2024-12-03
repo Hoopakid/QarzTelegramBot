@@ -2,12 +2,16 @@
 CREATE TABLE zakaz_products (
     id SERIAL PRIMARY KEY,              
     product_name VARCHAR(255),          
-    product_count INTEGER,              
-    product_price NUMERIC(10, 2),       
-    client_phone_number VARCHAR(15),    
-    client_full_name VARCHAR(255),      
-    payment_choice VARCHAR(50),         
+    product_count VARCHAR(255),              
+    product_per_price VARCHAR(255),       
+    product_price VARCHAR(255),
     product_description TEXT,           
+	client_phone_number VARCHAR(15),    
+    client_enterprise VARCHAR(255),      
+    payment_choice VARCHAR(50),
+	qarzdorlik_description text NULL,
+    contract_number TEXT,
+    enterprise_name VARCHAR(255),
     is_active BOOL default True,
 	status BOOL NULL,
     created_at TIMESTAMP DEFAULT NOW(), 
@@ -34,3 +38,11 @@ VALUES
     ('Daftar'),
     ('Sumka'),
     ('Televizor');
+
+CREATE TABLE qarz_statistics (
+    id SERIAL PRIMARY KEY,
+	price BIGINT,
+    zakaz_id INT,
+	CONSTRAINT zakaz_products FOREIGN KEY (zakaz_id) REFERENCES qarz_statistics(id),
+	created_at TIMESTAMP default now()
+	);

@@ -21,3 +21,9 @@ def product_editing():
     remove_product = KeyboardButton(text="➖ Mahsulotni o'chirish")
     final = ReplyKeyboardMarkup(keyboard=[[add_product], [remove_product]], resize_keyboard=True, one_time_keyboard=True)
     return final
+
+def inline_qarzdorlik_button():
+    cancel_product = InlineKeyboardButton(text="Qarzdorlikni bekor qildirish", callback_data="cancel_borrowing")
+    decrease_borrowing = InlineKeyboardButton(text="Qarzdorlikni kamaytirish", callback_data="decrease_borrowing")
+    final = InlineKeyboardMarkup(inline_keyboard=[[cancel_product], [decrease_borrowing]])
+    return final

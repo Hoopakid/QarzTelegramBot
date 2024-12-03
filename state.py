@@ -25,3 +25,14 @@ class ProductDetailState(StatesGroup):
     product_description = State()
     client_full_name = State()
     new_product_name = State()
+    description_for_qarzdorlik = State()
+    contract_number = State()
+    enterprise_name = State()
+
+class OtkazState(StatesGroup):
+    product_id = State()
+
+class BorrowingState(StatesGroup):
+    product_id = State()
+    product_temp_id = State()
+    product_price_borrowing = State()
