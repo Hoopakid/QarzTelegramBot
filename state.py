@@ -36,3 +36,13 @@ class BorrowingState(StatesGroup):
     product_id = State()
     product_temp_id = State()
     product_price_borrowing = State()
+    product_edit_id = State()
+
+class EditingZakazState(StatesGroup):
+    product_name = State()
+    product_description = State()
+    product_per_price = State()
+    product_count = State()
+    product_field = State()
+
+    product_temp_id = State()

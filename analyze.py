@@ -163,6 +163,52 @@ def read_qarz_data():
         print(f"Error: {e}")
         return {'success': False, 'data': []}
 
+def change_by_section(column_name, product_id, changed_value):
+    conn = connection()
+    cursor = conn.cursor(cursor_factory=extras.DictCursor)
+    try:
+        update_query = f"UPDATE zakaz_products SET {column_name} = %s WHERE id = %s"
+        cursor.execute(update_query, (changed_value, product_id))
+        conn.commit()
+        return {'success': True}
+    except Exception:
+        return {'success': False}
+
+def save_product_detail(product_id, updated_details):
+    query = """
+    UPDATE zakaz_products
+    SET 
+        product_name = %s,
+        product_count = %s,
+        product_per_price = %s,
+        product_price = %s,
+        product_description = %s,
+        updated_at = %s
+    WHERE id = %s;
+    """
+    try:
+        conn = connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(query, (
+            updated_details['product_name'],
+            updated_details['product_count'],
+            updated_details['product_per_price'],
+            updated_details['product_price'],
+            updated_details['product_description'],
+            datetime.now(),
+            product_id
+        ))
+        conn.commit()
+        
+        return {'success': True}
+    except Exception as e:
+        print(f"Database Error: {e}")
+        return {'success': False}
+    finally:
+        conn.close()
+
+
 def get_only_product(product_id):
     conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
@@ -214,13 +260,7 @@ def read_all_data():
         for k, row in enumerate(temp):
             data.append({
                 'product_id': row['id'],
-                'product_name': row['product_name'],
-                'product_count': row['product_count'],
-                'product_price': row['product_price'],
-                'client_full_name': row['client_full_name'],
-                'client_phone_number': row['client_phone_number'],
-                'payment_choice': row['payment_choice'],
-                'status': row['status'],
+                'enterprise_name': row['enterprise_name'],
             })
     except Exception as e:
         print(f"Error: {e}")

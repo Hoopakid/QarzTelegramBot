@@ -13,7 +13,8 @@ def serving_options():
     products = KeyboardButton(text="Mahsulotlar")
     cancel = KeyboardButton(text='Bekor qildirish')
     borrowing = KeyboardButton(text="Qarzdorlik")
-    final = ReplyKeyboardMarkup(keyboard=[[order], [stats], [cancel], [borrowing], [products]], resize_keyboard=True, one_time_keyboard=True)
+    edit_order = KeyboardButton(text="Zakazni tahrirlash")
+    final = ReplyKeyboardMarkup(keyboard=[[order], [stats, cancel], [borrowing, products], [edit_order]], resize_keyboard=True, one_time_keyboard=True)
     return final
 
 def product_editing():
@@ -26,4 +27,10 @@ def inline_qarzdorlik_button():
     cancel_product = InlineKeyboardButton(text="Qarzdorlikni bekor qildirish", callback_data="cancel_borrowing")
     decrease_borrowing = InlineKeyboardButton(text="Qarzdorlikni kamaytirish", callback_data="decrease_borrowing")
     final = InlineKeyboardMarkup(inline_keyboard=[[cancel_product], [decrease_borrowing]])
+    return final
+
+def inline_edit_button():
+    with_id = KeyboardButton(text="ID orqali")
+    with_name = KeyboardButton(text="Zakaz orqali")
+    final = ReplyKeyboardMarkup(keyboard=[[with_id, with_name]], resize_keyboard=True, one_time_keyboard=True)
     return final
