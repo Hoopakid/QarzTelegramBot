@@ -14,6 +14,7 @@ DB_PASSWORD = os.environ.get('DB_PASSWORD')
 DB_USER = os.environ.get('DB_USERNAME')
 DB_NAME = os.environ.get('DB_NAME')
 
+
 def connection():
     conn = psycopg2.connect(
         host=DB_HOST,
@@ -24,17 +25,19 @@ def connection():
     )
     return conn
 
+
 def insert_data_to_products(product_name):
     conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
     try:
         query = "INSERT INTO user_products (product_name) VALUES (%s)"
-        cursor.execute(query, (product_name, ))
+        cursor.execute(query, (product_name,))
         conn.commit()
         conn.close()
         return {'success': True}
     except Exception:
         return {'success': False}
+
 
 def delete_data_from_products(product_id):
     conn = connection()
@@ -45,8 +48,9 @@ def delete_data_from_products(product_id):
         conn.commit()
         conn.close()
         return {'success': True}
-    except Exception: 
+    except Exception:
         return {'success': False}
+
 
 def get_sorted_data():
     conn = connection()
@@ -109,7 +113,7 @@ def insert_data(product_data: dict):
                 product_data.get('enterprise_name')
             ))
         returned_id = cursor.fetchone()['id']
-        conn.commit() 
+        conn.commit()
     except Exception as e:
         conn.rollback()
         print(f"Error inserting data: {e}")
@@ -118,7 +122,8 @@ def insert_data(product_data: dict):
         cursor.close()
         conn.close()
     return {"success": True, "returned_id": returned_id}
-    
+
+
 def get_product_by_id(product_id: int):
     conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
@@ -150,6 +155,7 @@ def get_products():
     data = [product[0] for product in products]
     return data
 
+
 def read_qarz_data():
     conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
@@ -163,6 +169,7 @@ def read_qarz_data():
         print(f"Error: {e}")
         return {'success': False, 'data': []}
 
+
 def change_by_section(column_name, product_id, changed_value):
     conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
@@ -173,6 +180,7 @@ def change_by_section(column_name, product_id, changed_value):
         return {'success': True}
     except Exception:
         return {'success': False}
+
 
 def save_product_detail(product_id, updated_details):
     query = """
@@ -189,7 +197,7 @@ def save_product_detail(product_id, updated_details):
     try:
         conn = connection()
         cursor = conn.cursor()
-        
+
         cursor.execute(query, (
             updated_details['product_name'],
             updated_details['product_count'],
@@ -200,7 +208,7 @@ def save_product_detail(product_id, updated_details):
             product_id
         ))
         conn.commit()
-        
+
         return {'success': True}
     except Exception as e:
         print(f"Database Error: {e}")
@@ -221,6 +229,7 @@ def get_only_product(product_id):
     except Exception as e:
         print(f"Error: {e}")
         return {'success': False, 'data': []}
+
 
 def insert_to_qarzdorlik(product_id, price):
     conn = connection()
@@ -248,6 +257,7 @@ def change_status_qarz(product_id):
         conn.close()
         return {'success': True}
 
+
 def read_all_data():
     conn = connection()
     data = []
@@ -271,6 +281,7 @@ def read_all_data():
 
     return {'success': True, 'data': data}
 
+
 def change_status_otkaz(product_id):
     conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
@@ -284,10 +295,12 @@ def change_status_otkaz(product_id):
         conn.close()
         return {'success': True}
 
+
 from collections import defaultdict
 
+
 def get_analyzed_information(is_today=False, is_week=False, is_month=False, start_date=False, starting_date=None):
-    conn = connection() 
+    conn = connection()
     cursor = conn.cursor(cursor_factory=extras.DictCursor)
     data = []
 
@@ -328,7 +341,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
             start_date = datetime.strptime(starting_date, '%Y-%m-%d')
         except ValueError as e:
             return {"success": False, "message": "Invalid date format"}
-        
+
         start_of_day = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_day = start_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
@@ -342,9 +355,9 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
 
     if not data:
         return {"success": False, 'message': 'No data found for this date range'}
-    
+
     df = pd.DataFrame(data, columns=[
-        'id', 'product_name', 'product_count', 'product_price', 'payment_choice', 'is_active', 
+        'id', 'product_name', 'product_count', 'product_price', 'payment_choice', 'is_active',
         'client_phone_number', 'enterprise_name'])
 
     df['product_names_split'] = df['product_name'].apply(lambda x: x.split('# '))
@@ -356,7 +369,7 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
         product_names = row['product_names_split']
         product_counts = row['product_counts_split']
         product_prices = row['product_price_split']
-        
+
         for product, count, price in zip(product_names, product_counts, product_prices):
             flattened_products.append((product, count, price))
 
@@ -390,7 +403,9 @@ def get_analyzed_information(is_today=False, is_week=False, is_month=False, star
 
     return {"success": True, "message": message}
 
+
 import pandas as pd
+
 
 def export_statistics_to_excel(data, file_name="statistics.xlsx"):
     try:
@@ -426,7 +441,7 @@ def export_statistics_to_excel(data, file_name="statistics.xlsx"):
                             "Soni": int(payment_count.split(" ")[0])
                         })
                     start_index += 1
-        
+
         df_product_summary = pd.DataFrame(product_summary)
         df_payment_summary = pd.DataFrame(payment_summary)
 

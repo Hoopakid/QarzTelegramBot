@@ -12,7 +12,10 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
 from state import ProductDetailState, OtkazState, BorrowingState, EditingZakazState
-from analyze import insert_data, read_qarz_data, change_status_qarz, get_products, read_all_data, change_status_otkaz, get_analyzed_information, insert_data_to_products, delete_data_from_products, get_sorted_data, get_product_by_id, get_qarz_product_by_id, get_only_product, insert_to_qarzdorlik, export_statistics_to_excel, change_by_section, save_product_detail
+from analyze import insert_data, read_qarz_data, change_status_qarz, get_products, read_all_data, change_status_otkaz, \
+    get_analyzed_information, insert_data_to_products, delete_data_from_products, get_sorted_data, get_product_by_id, \
+    get_qarz_product_by_id, get_only_product, insert_to_qarzdorlik, export_statistics_to_excel, change_by_section, \
+    save_product_detail
 from btn import payment_option, serving_options, product_editing, inline_qarzdorlik_button, inline_edit_button
 
 load_dotenv()
@@ -28,6 +31,7 @@ user_product_selection = {}
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
+
 def create_inline_keyboard(selected_products):
     keyboard = []
     keys = []
@@ -36,7 +40,7 @@ def create_inline_keyboard(selected_products):
     for index, product in enumerate(products, start=1):
         status = "✅" if product in selected_products else "➕"
         keys.append(InlineKeyboardButton(text=f"{status} {product}", callback_data=f"toggle_{product}"))
-        
+
         if index % 2 == 0:
             keyboard.append(keys)
             keys = []
@@ -48,7 +52,7 @@ def create_inline_keyboard(selected_products):
         InlineKeyboardButton(text="✅ Tasdiqlash", callback_data='confirm'),
         InlineKeyboardButton(text="❌ Bekor qilish", callback_data='cancel')
     ])
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
@@ -62,13 +66,14 @@ def create_otkaz_keyboard(selected_products):
         keys.append(InlineKeyboardButton(text=f"{status} {product}", callback_data=f"otkaz_{product}"))
         keyboard.append(keys)
         keys = []
-    
+
     keyboard.append([
         InlineKeyboardButton(text="✅ Tasdiqlash", callback_data='confirm_otkaz'),
         InlineKeyboardButton(text="❌ Bekor qilish", callback_data='cancel_otkaz')
     ])
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
 
 def create_qarz_keyboard(selected_products):
     qarz_products = [f"{product['product_id']} - {product['client_full_name']}" for product in read_qarz_data()['data']]
@@ -80,13 +85,14 @@ def create_qarz_keyboard(selected_products):
         keys.append(InlineKeyboardButton(text=f"{status} {product}", callback_data=f"qarz_{product}"))
         keyboard.append(keys)
         keys = []
-    
+
     keyboard.append([
         InlineKeyboardButton(text="✅ Tasdiqlash", callback_data='confirm_qarz'),
         InlineKeyboardButton(text="❌ Bekor qilish", callback_data='cancel_qarz')
     ])
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
 
 def create_product_selection_keyboard(product_names):
     keyboard = []
@@ -103,17 +109,18 @@ def create_edit_keyboard(selected_products):
     for index, product in enumerate(edit_products, start=1):
         status = "✅" if product in selected_products else "➕"
         keys.append(InlineKeyboardButton(text=f"{status} {product}", callback_data=f"edit_{product}"))
-        
+
         if len(keys) == 2:
             keyboard.append(keys)
             keys = []
-    
+
     keyboard.append([
         InlineKeyboardButton(text="✅ Tasdiqlash", callback_data='confirm_edit'),
         InlineKeyboardButton(text="❌ Bekor qilish", callback_data='cancel_edit')
     ])
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
 
 def create_products_keyboard(selected_products):
     products = get_products()
@@ -125,12 +132,12 @@ def create_products_keyboard(selected_products):
         keys.append(InlineKeyboardButton(text=f"{status} {product}", callback_data=f"mahsulot_{product}"))
         keyboard.append(keys)
         keys = []
-    
+
     keyboard.append([
         InlineKeyboardButton(text="✅ Tasdiqlash", callback_data='confirm_mahsulot'),
         InlineKeyboardButton(text="❌ Bekor qilish", callback_data='cancel_mahsulot')
     ])
-    
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
@@ -142,15 +149,16 @@ def products_keyboard():
         keys.append(InlineKeyboardButton(text=product, callback_data=f"product:{product}"))
         if len(keys) == 2:
             keyboards.append(keys)
-            keys = [] 
+            keys = []
 
     return InlineKeyboardMarkup(inline_keyboard=keyboards)
+
 
 def create_confrim_cancel(text1, text2, callback1, callback2):
     confirm = InlineKeyboardButton(text=text1, callback_data=callback1)
     cancel = InlineKeyboardButton(text=text2, callback_data=callback2)
     final = InlineKeyboardMarkup(inline_keyboard=[[confirm], [cancel]])
-    return final    
+    return final
 
 
 def create_selection_type(text1, text2, text3, text4, callback1, callback2, callback3, callback4):
@@ -159,14 +167,17 @@ def create_selection_type(text1, text2, text3, text4, callback1, callback2, call
     product_per_price = InlineKeyboardButton(text=text3, callback_data=callback3)
     product_description = InlineKeyboardButton(text=text4, callback_data=callback4)
 
-    final = InlineKeyboardMarkup(inline_keyboard=[[product_name], [product_count], [product_per_price], [product_description]])
+    final = InlineKeyboardMarkup(
+        inline_keyboard=[[product_name], [product_count], [product_per_price], [product_description]])
     return final
+
 
 def confirm_cancel_qarz():
     confirm = InlineKeyboardButton(text="❎ Zakazni qarzdorlikdan olib tashlash", callback_data="conf_qarz")
     cancel = InlineKeyboardButton(text='↩️ Ortga qaytish', callback_data="canc_qarz")
     final = InlineKeyboardMarkup(inline_keyboard=[[confirm], [cancel]])
     return final
+
 
 async def send_message(message: str, topic_id):
     url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
@@ -181,11 +192,13 @@ async def send_message(message: str, topic_id):
                 return {'success': True}
             else:
                 return {'success': False}
-            
+
+
 MONTHS = [
-    "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", 
+    "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
     "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"
 ]
+
 
 def generate_month_selector():
     inline_keyboard = []
@@ -196,6 +209,7 @@ def generate_month_selector():
             inline_keyboard.append(a)
             a = []
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
 
 def generate_custom_calendar(month: int = None, year: int = None, add_exc=False):
     now = datetime.datetime.now()
@@ -231,11 +245,11 @@ def generate_custom_calendar(month: int = None, year: int = None, add_exc=False)
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
-
 @dp.message(CommandStart())
 async def start_bot(message: Message):
     await message.answer('Assalomu alaykum botimizga xush kelibsiz')
     await message.answer('Kerakli xizmatni tanlang', reply_markup=serving_options())
+
 
 # Zakaz berish section
 @dp.message(lambda msg: msg.text == "Zakaz berish")
@@ -243,6 +257,7 @@ async def order_section(message: Message):
     user_zakaz_selection[message.chat.id] = []
     keyboard = create_inline_keyboard(user_zakaz_selection[message.chat.id])
     await message.answer("Mahsulotlarni tanlang", reply_markup=keyboard)
+
 
 @dp.callback_query(lambda c: c.data.startswith("toggle_"))
 async def toggle_product(callback_query: types.CallbackQuery):
@@ -253,9 +268,10 @@ async def toggle_product(callback_query: types.CallbackQuery):
         user_zakaz_selection[user_id].remove(product_name)
     else:
         user_zakaz_selection[user_id].append(product_name)
-    
+
     keyboard = create_inline_keyboard(user_zakaz_selection[user_id])
     await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+
 
 @dp.callback_query(lambda c: c.data == "confirm")
 async def confirm_selection(callback_query: types.CallbackQuery, state: FSMContext):
@@ -266,10 +282,11 @@ async def confirm_selection(callback_query: types.CallbackQuery, state: FSMConte
         await callback_query.answer("Zakaz tanlanmadi!", show_alert=True)
         await callback_query.message.answer('Kerakli xizmatni tanlang', reply_markup=serving_options())
         return
-    
+
     await callback_query.message.answer(f"Tanlangan zakazlar: {', '.join(selected_products)}")
     await state.update_data({'selected_products': selected_products})
     await handler(callback_query.message, state)
+
 
 @dp.callback_query(lambda c: c.data == 'cancel')
 async def cancel_selection(callback_query: types.CallbackQuery, state: FSMContext):
@@ -277,22 +294,24 @@ async def cancel_selection(callback_query: types.CallbackQuery, state: FSMContex
     await state.clear()
     await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 async def handler(message: Message, state: FSMContext):
     try:
         products = await state.get_data()
         selected_products = products.get('selected_products', [])
-        
+
         await message.answer(f"{selected_products[0]} dan nechta buyurtma bermoqchisiz")
         current_product = selected_products[0]
         selected_products.remove(current_product)
 
-        await state.update_data({'current_product': current_product,'selected_products': selected_products})
+        await state.update_data({'current_product': current_product, 'selected_products': selected_products})
         await state.set_state(ProductDetailState.product_count)
     except Exception as e:
         print(f"{e}")
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urunib ko'ring")
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
 
 @dp.message(ProductDetailState.product_count)
 async def receive_product_count(message: Message, state: FSMContext):
@@ -308,13 +327,14 @@ async def receive_product_count(message: Message, state: FSMContext):
             await state.update_data({'product_count': product_count})
             await message.answer("Zakaz uchun narx yuboring")
             await state.set_state(ProductDetailState.product_price)
-    
+
     except Exception as e:
         print(f"{e}")
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urunib ko'ring")
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
- 
+
+
 @dp.message(ProductDetailState.product_price)
 async def receive_product_price(message: Message, state: FSMContext):
     try:
@@ -331,7 +351,8 @@ async def receive_product_price(message: Message, state: FSMContext):
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urunib ko'ring")
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-        
+
+
 @dp.message(ProductDetailState.product_description)
 async def receive_product_description(message: Message, state: FSMContext):
     try:
@@ -377,6 +398,7 @@ async def receive_client_full_name(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.message(ProductDetailState.client_phone_number)
 async def receive_client_phone_number(message: Message, state: FSMContext):
     try:
@@ -394,7 +416,7 @@ async def receive_client_phone_number(message: Message, state: FSMContext):
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urunib ko'ring")
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-        
+
 
 @dp.message(ProductDetailState.payment_choice)
 async def recieve_payment_choice(message: Message, state: FSMContext):
@@ -420,6 +442,7 @@ async def recieve_payment_choice(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.message(ProductDetailState.description_for_qarzdorlik)
 async def receive_description_for_qarzdorlik(message: Message, state: FSMContext):
     try:
@@ -430,8 +453,9 @@ async def receive_description_for_qarzdorlik(message: Message, state: FSMContext
     except Exception as e:
         print(f"{e}")
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
-        await state.clear() 
+        await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
 
 @dp.message(ProductDetailState.contract_number)
 async def receive_contract_number(message: Message, state: FSMContext):
@@ -450,17 +474,17 @@ async def receive_contract_number(message: Message, state: FSMContext):
 async def receive_enterprise_name(message: Message, state: FSMContext):
     try:
         data = await state.get_data()
-        
+
         combined_product_name = "# ".join([p['name'] for p in data['products']])
         combined_product_count = "# ".join(str(p['count']) for p in data['products'])
         combined_product_per_price = "# ".join(str(p['price']) for p in data['products'])
         combined_product_price = "# ".join(str(p['price'] * p['count']) for p in data['products'])
         combined_product_description = "# ".join(p['description'] for p in data['products'])
-        
+
         temp = {
             "product_name": combined_product_name,
             "product_count": combined_product_count,
-            "product_per_price": combined_product_per_price, 
+            "product_per_price": combined_product_per_price,
             "product_price": combined_product_price,
             "product_description": combined_product_description,
             "client_phone_number": data["client_phone_number"],
@@ -470,18 +494,19 @@ async def receive_enterprise_name(message: Message, state: FSMContext):
             "contract_number": data["contract_number"],
             "enterprise_name": message.text
         }
-        
+
         success = insert_data(temp)
         if success['success'] is True:
             returned_id = success['returned_id']
             current_date = datetime.datetime.now().date()
-            returning_message = f"#Zakaz_{returned_id}\n{current_date}\n"
+            returning_message = f"#Zakaz_qabul_qilindi\n🆔 Zakaz ID: {returned_id}\n📅Qabul qilingan sana: {current_date}\n"
 
             for i in data['products']:
+                returning_message += f"\n📦 Mahsulot: {i['name']}\n🔢 Soni: {i['count']} ta\n💰 Sotilgan narxi: {i['price']}\n💬 Izoh: {i['description']}\n"
             
-                returning_message += f"\n📦 Mahsulot: {i['name']}\n🔢 Soni: {i['count']} ta\n💰 Sotilgan narxi: {i['price']}\n💰Shartnomaning umumiy narxi: {i['price'] * i['count']}\n💬 Izoh: {i['description']}\n"
-            
-            returning_message += f"\n💳 To'lov turi: {data['payment_choice']}\n📱Mijozning telefon raqami: {data['client_phone_number']}\n🤵 Sotib oluvchi korxona: {data['client_full_name']}\n🎫 Shartnoma raqami: {data['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {message.text}\n" 
+            product_all_price = [i['price'] * i['count'] for i in data['products']] 
+
+            returning_message += f"\n💰Shartnomaning umumiy narxi: {product_all_price}\n💳 To'lov turi: {data['payment_choice']}\n📱Mijozning telefon raqami: {data['client_phone_number']}\n🤵 Sotib oluvchi korxona: {data['client_full_name']}\n🎫 Shartnoma raqami: {data['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {message.text}\n"
             if data['description_for_qarzdorlik'] is not None:
                 returning_message += f"💬 Qarzdorlik uchun izoh: {data['description_for_qarzdorlik']}"
             await send_message(returning_message, 105)
@@ -498,6 +523,7 @@ async def receive_enterprise_name(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 # TODO OTKAZ SECION
 @dp.message(lambda msg: msg.text == 'Bekor qildirish')
 async def delete_product(message: Message, state: FSMContext):
@@ -508,7 +534,8 @@ async def delete_product(message: Message, state: FSMContext):
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
         await state.clear()
         await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
-        
+
+
 @dp.message(OtkazState.product_id)
 async def confirm_selection(message: Message, state: FSMContext):
     try:
@@ -516,14 +543,14 @@ async def confirm_selection(message: Message, state: FSMContext):
         if product_id <= 0:
             await message.answer("Iltimos, zakaz id sini musbat son ko'rinishida yuboring")
         else:
-            detail = get_product_by_id(product_id)    
+            detail = get_product_by_id(product_id)
             if detail['success'] is False:
                 await message.answer("Kechirasiz, bu id da zakaz mavjud emas")
             else:
                 product = detail['product']
                 await state.update_data({"product_otkaz_id": product_id})
                 date_formatted = product['created_at'].strftime('%Y-%d-%m')
-                
+
                 returning_message = f"🆔 Zakaz ID:{product['id']}\n📅 Sana: {date_formatted}\n"
 
                 product_name = product['product_name'].split("# ")
@@ -534,16 +561,16 @@ async def confirm_selection(message: Message, state: FSMContext):
 
                 for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
                     returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
-                
+
                 returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
                 if product['qarzdorlik_description'] is not None:
                     returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
                 await message.answer(
-                    returning_message, 
+                    returning_message,
                     reply_markup=create_confrim_cancel(
-                        "❎ Mahsulotni bekor qilish", 
-                        "↩️ Ortga qaytish", 
-                        "canc", 
+                        "❎ Mahsulotni bekor qilish",
+                        "↩️ Ortga qaytish",
+                        "canc",
                         "conf"
                     )
                 )
@@ -552,9 +579,10 @@ async def confirm_selection(message: Message, state: FSMContext):
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
         await state.clear()
         await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
-        
+
+
 @dp.callback_query(lambda c: c.data == 'canc')
-async def cancel_product(callback_query: types.CallbackQuery, state:FSMContext):
+async def cancel_product(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
     data = await state.get_data()
     product_id = data['product_otkaz_id']
@@ -567,13 +595,15 @@ async def cancel_product(callback_query: types.CallbackQuery, state:FSMContext):
         await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi")
         await state.clear()
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-        return 
-    
+        return
+
+
 @dp.callback_query(lambda c: c.data == 'conf')
 async def cancel_process(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
     await state.clear()
-    await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())    
+    await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
 
 # TODO QARZ SECTION
 @dp.message(lambda msg: msg.text == 'Qarzdorlik')
@@ -584,7 +614,7 @@ async def qarzdorlik(message: Message, state: FSMContext):
             await message.answer("Xozirda qarzdorligi mavjud bo'lgan zakaz mavjud emas")
             await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
             return
-        
+
         await message.answer("Qarzdorlik uchun amalni tanlang", reply_markup=inline_qarzdorlik_button())
 
     except Exception as e:
@@ -593,9 +623,10 @@ async def qarzdorlik(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
 
+
 @dp.callback_query(lambda c: c.data == 'cancel_borrowing')
 async def ask_for_product_id(callback_query: types.CallbackQuery, state: FSMContext):
-    try: 
+    try:
         await callback_query.message.delete()
         await callback_query.message.answer("Qarzdorlikdan olib tashlamoqchi bo'lgan zakazning id sini kiriting")
         await state.set_state(BorrowingState.product_id)
@@ -613,7 +644,7 @@ async def confirm_qarz(message: Message, state: FSMContext):
             await message.answer("Iltimos, zakaz id sini musbat son ko'rinishida yuboring")
             await state.set_state(BorrowingState.product_id)
         else:
-            detail = get_product_by_id(product_id)    
+            detail = get_product_by_id(product_id)
             if detail['success'] is False:
                 await message.answer("Kechirasiz, bu id da zakaz mavjud emas")
                 await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
@@ -621,7 +652,7 @@ async def confirm_qarz(message: Message, state: FSMContext):
                 product = detail['product']
                 await state.update_data({"product_qarz_id": product_id})
                 date_formatted = product['created_at'].strftime('%Y-%d-%m')
-                
+
                 returning_message = f"🆔 Zakaz ID: {product['id']}\n📅 Sana: {date_formatted}\n"
 
                 product_name = product['product_name'].split("# ")
@@ -632,16 +663,16 @@ async def confirm_qarz(message: Message, state: FSMContext):
 
                 for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
                     returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
-                
+
                 returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
                 if product['qarzdorlik_description'] is not None:
                     returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
                 await message.answer(
-                    returning_message, 
+                    returning_message,
                     reply_markup=create_confrim_cancel(
-                        "❎ Mahsulotni qarzdorlikdan olib tashlash", 
-                        "↩️ Ortga qaytish", 
-                        "cancel_product", 
+                        "❎ Mahsulotni qarzdorlikdan olib tashlash",
+                        "↩️ Ortga qaytish",
+                        "cancel_product",
                         "confirm_process"
                     )
                 )
@@ -650,7 +681,7 @@ async def confirm_qarz(message: Message, state: FSMContext):
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
         await state.clear()
         await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
-    
+
 
 @dp.callback_query(lambda c: c.data == 'cancel_product')
 async def confirm_qarzprocess(callback_query: types.CallbackQuery, state: FSMContext):
@@ -668,16 +699,17 @@ async def confirm_qarzprocess(callback_query: types.CallbackQuery, state: FSMCon
             splitted_product_per_price = product['product_per_price'].split('# ')
             splitted_product_price = map(int, product['product_price'].split('# '))
             splitted_product_description = product['product_description'].split('# ')
-        
+
             returning_message = f"#Qarzdorlik_bekor_qilindi\n🆔 Zakaz ID: {product['id']}\n📅 Bekor qilingan sana: {datetime.datetime.today().date()}\n"
 
-            for name, count, per_price, desc in zip(splitted_product_name, splitted_product_count, splitted_product_per_price, splitted_product_description):
+            for name, count, per_price, desc in zip(splitted_product_name, splitted_product_count,
+                                                    splitted_product_per_price, splitted_product_description):
                 returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per_price}\n💬 Izoh: {desc}\n"
-            
+
             returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(splitted_product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
             if product['qarzdorlik_description'] is not None:
                 returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
-            
+
             await send_message(returning_message, 106)
 
         await callback_query.message.answer("Zakaz muvaffaqiyatli qarzdorlikdan olib tashlandi")
@@ -687,18 +719,20 @@ async def confirm_qarzprocess(callback_query: types.CallbackQuery, state: FSMCon
         await callback_query.message.answer("Dasturda biror xatolik yuz berdi")
         await state.clear()
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-        
-    
+
+
 @dp.callback_query(lambda c: c.data == 'confirm_process')
 async def cancel_qarzprocess(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
     await state.clear()
     await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.callback_query(lambda c: c.data == 'decrease_borrowing')
 async def receive_qarz_decreasing_id(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.answer("Qarzdorligini kamaytirmoqchi bo'lgan zakazning id sini kiriting")
     await state.set_state(BorrowingState.product_temp_id)
+
 
 @dp.message(BorrowingState.product_temp_id)
 async def show_the_details_of_product(message: Message, state: FSMContext):
@@ -708,7 +742,7 @@ async def show_the_details_of_product(message: Message, state: FSMContext):
             await message.answer("Iltimos, zakaz id sini musbat son ko'rinishida yuboring")
             await state.set_state(BorrowingState.product_temp_id)
         else:
-            detail = get_product_by_id(product_id)    
+            detail = get_product_by_id(product_id)
             if detail['success'] is False:
                 await message.answer("Kechirasiz, bu id da zakaz mavjud emas")
                 await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
@@ -716,7 +750,7 @@ async def show_the_details_of_product(message: Message, state: FSMContext):
                 product = detail['product']
                 await state.update_data({"product_decrease_id": product_id})
                 date_formatted = product['created_at'].strftime('%Y-%d-%m')
-                
+
                 returning_message = f"🆔 Zakaz ID: {product['id']}\n📅 Sana:{date_formatted}\n"
 
                 product_name = product['product_name'].split("# ")
@@ -727,16 +761,16 @@ async def show_the_details_of_product(message: Message, state: FSMContext):
 
                 for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
                     returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
-                
+
                 returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
                 if product['qarzdorlik_description'] is not None:
                     returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
                 await message.answer(
-                    returning_message, 
+                    returning_message,
                     reply_markup=create_confrim_cancel(
-                        "❎ Davom etish", 
-                        "↩️ Ortga qaytish", 
-                        "continue", 
+                        "❎ Davom etish",
+                        "↩️ Ortga qaytish",
+                        "continue",
                         "back"
                     )
                 )
@@ -745,23 +779,26 @@ async def show_the_details_of_product(message: Message, state: FSMContext):
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
         await state.clear()
         await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
-    
+
+
 async def ask_borrowing_sum(message: Message, state: FSMContext):
     await message.answer("Iltimos, summa ni musbat son ko'rinishida yuboring")
     await state.set_state(BorrowingState.product_price_borrowing)
+
 
 @dp.callback_query(lambda c: c.data == 'continue')
 async def receive_sum_for_borrowing(callback_query: types.CallbackQuery, state: FSMContext):
     try:
         await callback_query.message.answer('Qarzdorlikni qancha summasini kamaytirmoqchisiz')
         await state.set_state(BorrowingState.product_price_borrowing)
-    
+
     except Exception as e:
         print(f"{e}")
         await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
         await state.clear()
         await callback_query.message.answer("Xizmat turini tanlang", reply_markup=serving_options())
-    
+
+
 @dp.message(BorrowingState.product_price_borrowing)
 async def receive_sum(message: Message, state: FSMContext):
     try:
@@ -780,18 +817,19 @@ async def receive_sum(message: Message, state: FSMContext):
                 splitted_product_per_price = product['product_per_price'].split('# ')
                 splitted_product_price = map(int, product['product_price'].split('# '))
                 splitted_product_description = product['product_description'].split('# ')
-            
+
                 returning_message = f"#Qarzdorlik_kamaytirildi\n🆔 Zakaz ID{product['id']}\n📅 Kamaytirilgan sana: {datetime.datetime.today().date()}\n"
 
-                for name, count, per_price, desc in zip(splitted_product_name, splitted_product_count, splitted_product_per_price, splitted_product_description):
+                for name, count, per_price, desc in zip(splitted_product_name, splitted_product_count,
+                                                        splitted_product_per_price, splitted_product_description):
                     returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per_price}\n💬 Izoh: {desc}\n"
-                
+
                 returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(splitted_product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
                 if product['qarzdorlik_description'] is not None:
                     returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
                 returning_message += f"\n\n💰 Qancha summa kamaytirildi: {borrowing_sum}"
                 await send_message(returning_message, 106)
-            
+
             await message.answer(f"Ushbu zakazdan {borrowing_sum} so'm qarzdorlikdan muvaffaqiyatli olib tashlandi")
             await state.clear()
             await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
@@ -802,11 +840,13 @@ async def receive_sum(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
 
+
 @dp.callback_query(lambda c: c.data == 'back')
 async def back_to(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
     await state.clear()
     await callback_query.message.answer('Kerakli xizmatni tanlang', reply_markup=serving_options())
+
 
 # TODO Stats
 @dp.message(lambda msg: msg.text == "Statistika")
@@ -815,6 +855,7 @@ async def get_stats(message: Message):
         "Statistika uchun oyni tanlang",
         reply_markup=generate_month_selector()
     )
+
 
 @dp.callback_query(lambda c: c.data.startswith("month:"))
 async def process_month_callback(callback_query: types.CallbackQuery):
@@ -828,6 +869,7 @@ async def process_month_callback(callback_query: types.CallbackQuery):
         message_id=callback_query.message.message_id,
         reply_markup=generate_custom_calendar(selected_month, year)
     )
+
 
 @dp.callback_query(lambda c: c.data.startswith("day:"))
 async def process_day_callback(callback_query: types.CallbackQuery, state: FSMContext):
@@ -871,7 +913,6 @@ async def process_day_callback(callback_query: types.CallbackQuery, state: FSMCo
         new_markup = generate_custom_calendar(datetime.datetime.now().month, datetime.datetime.now().year)
     stats_message = stats_message.strip()
 
-
     if stats_message != current_message:
         await state.update_data({'excel': temp})
         await bot.edit_message_text(
@@ -881,6 +922,7 @@ async def process_day_callback(callback_query: types.CallbackQuery, state: FSMCo
             reply_markup=new_markup
         )
 
+
 @dp.callback_query(lambda c: c.data == 'import_excel')
 async def import_to_excel(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
@@ -888,7 +930,7 @@ async def import_to_excel(callback_query: types.CallbackQuery, state: FSMContext
     data = st['excel']
     file_name = 'statistics.xlsx'
     success = export_statistics_to_excel(data)
-    
+
     if success:
         excel_file = FSInputFile(file_name)
         await bot.send_document(
@@ -905,7 +947,8 @@ async def import_to_excel(callback_query: types.CallbackQuery, state: FSMContext
         await callback_query.message.answer("Excel faylni yaratishda xatolik yuz berdi.")
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
         await state.clear()
-        
+
+
 # PRODUCTS
 @dp.message(lambda msg: msg.text == 'Mahsulotlar')
 async def ask_for_choice(message: Message):
@@ -915,6 +958,7 @@ async def ask_for_choice(message: Message):
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi")
         await message.anser("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.message(lambda msg: msg.text == "➕ Mahsulot qo'shish")
 async def add_product(message: Message, state: FSMContext):
     try:
@@ -923,6 +967,7 @@ async def add_product(message: Message, state: FSMContext):
     except Exception:
         await message.answer("Kechirasiz dasturda biror xatolik yuz berdi")
         await ask_for_choice(message)
+
 
 @dp.message(ProductDetailState.new_product_name)
 async def receive_new_product_name(message: Message, state: FSMContext):
@@ -937,13 +982,12 @@ async def receive_new_product_name(message: Message, state: FSMContext):
             await message.answer("Kechirasiz dasturda biror xatolik yuz berdi")
             await state.clear()
             await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-            
+
     except Exception as e:
         print(f'{e}')
-        await message.answer("Kechirasiz dasturda biror xatolik yuz berdi")        
+        await message.answer("Kechirasiz dasturda biror xatolik yuz berdi")
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-
 
 
 @dp.message(lambda msg: msg.text == "➖ Mahsulotni o'chirish")
@@ -955,7 +999,7 @@ async def mahsulot_(message: Message, state: FSMContext):
             await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
             await state.clear()
             return
-        
+
         user_product_selection[message.chat.id] = []
         keyboard = create_products_keyboard(user_product_selection[message.chat.id])
         await message.answer("O'chirmoqchi bo'lgan mahsulotni tanlang", reply_markup=keyboard)
@@ -964,7 +1008,8 @@ async def mahsulot_(message: Message, state: FSMContext):
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi qaytadan urinib ko'ring")
         await state.clear()
         await message.answer("Xizmat turini tanlang", reply_markup=serving_options())
-        
+
+
 @dp.callback_query(lambda c: c.data.startswith("mahsulot_"))
 async def qarz_product(callback_query: types.CallbackQuery):
     user_id = callback_query.message.chat.id
@@ -973,8 +1018,9 @@ async def qarz_product(callback_query: types.CallbackQuery):
     user_product_selection[user_id] = [product_name] if product_name not in user_product_selection[user_id] else []
 
     keyboard = create_products_keyboard(user_product_selection[user_id])
-    
+
     await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+
 
 @dp.callback_query(lambda c: c.data == 'confirm_mahsulot')
 async def confirm_mahs(callback_query: types.CallbackQuery, state: FSMContext):
@@ -986,7 +1032,7 @@ async def confirm_mahs(callback_query: types.CallbackQuery, state: FSMContext):
         await state.clear()
         await callback_query.message.answer('Kerakli xizmatni tanlang', reply_markup=serving_options())
         return
-    
+
     datas = get_sorted_data()
     if datas['success'] is True:
         for data in datas['sorted']:
@@ -1000,12 +1046,13 @@ async def confirm_mahs(callback_query: types.CallbackQuery, state: FSMContext):
                     await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi")
                     await state.clear()
                     await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-                    
+
     else:
         await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi")
         await state.clear()
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
-        
+
+
 @dp.callback_query(lambda c: c.data == 'cancel_mahsulot')
 async def cancel_mahsulot(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
@@ -1016,7 +1063,7 @@ async def cancel_mahsulot(callback_query: types.CallbackQuery, state: FSMContext
 
 # LAST SECTION EDITING ZAKAZ
 @dp.message(lambda msg: msg.text == 'Zakazni tahrirlash')
-async def edit_zakaz(message: Message, state: FSMContext): 
+async def edit_zakaz(message: Message, state: FSMContext):
     try:
         await message.answer("Tahrirlash uchun amalni tanlang", reply_markup=inline_edit_button())
     except Exception:
@@ -1024,7 +1071,9 @@ async def edit_zakaz(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 user_edit_selection = {}
+
 
 @dp.message(lambda msg: msg.text == 'Zakaz orqali')
 async def show_products(message: Message, state: FSMContext):
@@ -1045,6 +1094,7 @@ async def show_products(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.callback_query(lambda c: c.data.startswith("edit_"))
 async def edit_zakaz_getting(callback_query: types.CallbackQuery):
     try:
@@ -1054,7 +1104,7 @@ async def edit_zakaz_getting(callback_query: types.CallbackQuery):
         user_edit_selection[user_id] = [product_name] if product_name not in user_edit_selection[user_id] else []
 
         keyboard = create_edit_keyboard(user_edit_selection[user_id])
-        
+
         await callback_query.message.edit_reply_markup(reply_markup=keyboard)
     except Exception as e:
         print(f"{e}")
@@ -1073,13 +1123,13 @@ async def show_product_detail(callback_query: types.CallbackQuery, state: FSMCon
             await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
             await state.clear()
             return
-        
+
         product_id = selected_product[0][0]
         product = get_only_product(product_id)
         if product['success']:
             product = product['data']
             date_formatted = product['created_at'].strftime('%Y-%d-%m')
-            
+
             returning_message = f"🆔 Zakaz ID: {product['id']}\n📅Sana: {date_formatted}\n"
 
             product_name = product['product_name'].split("# ")
@@ -1094,16 +1144,16 @@ async def show_product_detail(callback_query: types.CallbackQuery, state: FSMCon
 
             for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
                 returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
-            
+
             returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
             if product['qarzdorlik_description'] is not None:
                 returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
             await callback_query.message.answer(
-                returning_message, 
+                returning_message,
                 reply_markup=create_confrim_cancel(
-                    "➡️ Davom etish", 
-                    "↩️ Bekor qilish", 
-                    "continue_editing", 
+                    "➡️ Davom etish",
+                    "↩️ Bekor qilish",
+                    "continue_editing",
                     "cancel_editing"
                 )
             )
@@ -1112,6 +1162,7 @@ async def show_product_detail(callback_query: types.CallbackQuery, state: FSMCon
         await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi, qaytadan urinib ko'ring")
         await state.clear()
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
 
 @dp.message(lambda msg: msg.text == 'ID orqali')
 async def receive_id_number(message: Message, state: FSMContext):
@@ -1124,8 +1175,9 @@ async def receive_id_number(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.message(EditingZakazState.product_temp_id)
-async def receive_and_show_product_detail(message: Message, state:FSMContext):
+async def receive_and_show_product_detail(message: Message, state: FSMContext):
     try:
         product_id = int(message.text)
         if product_id < 0:
@@ -1136,7 +1188,7 @@ async def receive_and_show_product_detail(message: Message, state:FSMContext):
         if product['success']:
             product = product['data']
             date_formatted = product['created_at'].strftime('%Y-%d-%m')
-            
+
             returning_message = f"🆔 Zakaz ID: {product['id']}\n📅Sana: {date_formatted}\n"
 
             product_name = product['product_name'].split("# ")
@@ -1151,16 +1203,16 @@ async def receive_and_show_product_detail(message: Message, state:FSMContext):
 
             for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
                 returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
-            
+
             returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
             if product['qarzdorlik_description'] is not None:
                 returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
             await message.answer(
-                returning_message, 
+                returning_message,
                 reply_markup=create_confrim_cancel(
-                    "➡️ Davom etish", 
-                    "↩️ Bekor qilish", 
-                    "continue_editing", 
+                    "➡️ Davom etish",
+                    "↩️ Bekor qilish",
+                    "continue_editing",
                     "cancel_editing"
                 )
             )
@@ -1180,7 +1232,8 @@ async def cancel_editing(callback_query: types.CallbackQuery, state: FSMContext)
     await callback_query.message.delete()
     await callback_query.answer("Bekor qilindi", show_alert=True)
     await state.clear()
-    await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options()) 
+    await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
 
 @dp.callback_query(lambda c: c.data == 'continue_editing')
 async def continue_editing(callback_query: types.CallbackQuery, state: FSMContext):
@@ -1213,14 +1266,14 @@ async def continue_editing(callback_query: types.CallbackQuery, state: FSMContex
             await callback_query.message.answer(
                 "O'zgartirmoqchi bo'lgan qismni tanlang",
                 reply_markup=create_selection_type(
-                per_price_message,
-                name_message,
-                description_message,
-                count_message,
-                'per_price_product',
-                'name_product',
-                'description_product',
-                'count_product'
+                    per_price_message,
+                    name_message,
+                    description_message,
+                    count_message,
+                    'per_price_product',
+                    'name_product',
+                    'description_product',
+                    'count_product'
                 )
             )
     except Exception as e:
@@ -1229,7 +1282,8 @@ async def continue_editing(callback_query: types.CallbackQuery, state: FSMContex
         await state.clear()
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
-#TODO FIRST SECTION EDITING
+
+# TODO FIRST SECTION EDITING
 @dp.callback_query(lambda c: c.data.startswith('select_product:'))
 async def select_product_for_edit(callback_query: types.CallbackQuery, state: FSMContext):
     try:
@@ -1265,7 +1319,6 @@ async def select_product_for_edit(callback_query: types.CallbackQuery, state: FS
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
 
-
 @dp.callback_query(lambda c: c.data.startswith('change_'))
 async def edit_selected_field(callback_query: types.CallbackQuery, state: FSMContext):
     try:
@@ -1286,6 +1339,7 @@ async def edit_selected_field(callback_query: types.CallbackQuery, state: FSMCon
         await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi, qaytadan urinib ko'ring")
         await state.clear()
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
 
 @dp.message(EditingZakazState.product_field)
 async def save_edited_field(message: Message, state: FSMContext):
@@ -1319,21 +1373,40 @@ async def save_edited_field(message: Message, state: FSMContext):
         success = save_product_detail(data['product_edit_id'], product_detail)
         if success['success']:
             await message.answer(f"Zakaz muvaffaqiyatli o'zgartirildi")
-            await send_message(
-                f"Sana: {datetime.datetime.today().date()}\n🆔 Zakaz {data['product_edit_id']} o'zgartirildi",
-                156
-            )
-            await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+            product_id = data['product_edit_id']
+            product = get_only_product(product_id)
+            if product['success']:
+                product = product['data']
+                date_formatted = product['created_at'].strftime('%Y-%d-%m')
+
+                returning_message = f"#Mahsulot_o'zgartirildi\n🆔 Zakaz ID: {product['id']}\n📅Sana: {date_formatted}\n"
+
+                product_name = product['product_name'].split("# ")
+                product_description = product['product_description'].split('# ')
+                product_count = product['product_count'].split('# ')
+                product_per_price = product['product_per_price'].split('# ')
+                product_price = map(int, product['product_price'].split('# '))
+
+                for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
+                    returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
+
+                returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
+                if product['qarzdorlik_description'] is not None:
+                    returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
+                await send_message(returning_message, 156)
+                await state.clear()
+                await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
         else:
             await message.answer("Dasturda xatolik yuz berdi. Qaytadan urinib ko'ring.")
+            await state.clear()
             await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
-        await state.clear()
     except Exception as e:
         print(f"{e}")
         await message.answer("Kechirasiz, dasturda biror xatolik yuz berdi, qaytadan urinib ko'ring")
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+
 
 # TODO SECOND SECTION EDITING
 @dp.callback_query(lambda c: c.data == 'per_price_product')
@@ -1342,6 +1415,7 @@ async def change_price_product(callback_query: types.CallbackQuery, state: FSMCo
     await callback_query.message.answer("Zakaz uchun yangi narx yuboring")
     await state.set_state(EditingZakazState.product_per_price)
 
+
 @dp.message(EditingZakazState.product_per_price)
 async def change_price(message: Message, state: FSMContext):
     try:
@@ -1349,15 +1423,37 @@ async def change_price(message: Message, state: FSMContext):
         if new_price < 0:
             await message.answer("Iltimos yangi narxni musbat son ko'rinishida yuboring")
             await state.set_state(EditingZakazState.product_per_price)
-        
+
         data = await state.get_data()
         success = change_by_section('product_per_price', data['product_edit_id'], new_price)
         if success['success'] is True:
-            success2 = change_by_section('product_price', data['product_edit_id'], new_price * int(data['product_detail']['product_count']))
+            success2 = change_by_section('product_price', data['product_edit_id'],
+                                         new_price * int(data['product_detail']['product_count']))
             if success2['success'] is True:
                 await message.answer("Zakazning narxi muvaffaqiyatli o'zgartildi")
-                await send_message(f"Sana: {datetime.datetime.today().date()}\n🆔 {data['product_edit_id']} dagi zakazning narxi {new_price} ga o'zgartirildi", 156)
-                await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+                product_id = data['product_edit_id']
+                product = get_only_product(product_id)
+                if product['success']:
+                    product = product['data']
+                    date_formatted = product['created_at'].strftime('%Y-%d-%m')
+                    
+                    returning_message = f"#Mahsulot_o'zgartirildi\n🆔 Zakaz ID: {product['id']}\n📅Sana: {date_formatted}\n"
+
+                    product_name = product['product_name'].split("# ")
+                    product_description = product['product_description'].split('# ')
+                    product_count = product['product_count'].split('# ')
+                    product_per_price = product['product_per_price'].split('# ')
+                    product_price = map(int, product['product_price'].split('# '))
+
+                    for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
+                        returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
+
+                    returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
+                    if product['qarzdorlik_description'] is not None:
+                        returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
+                    await send_message(returning_message, 156)
+                    await state.clear()
+                    await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
                 await state.clear()
             else:
                 await message.answer("Dasturda biror xatolik yuz berdi, iltimos qaytadan urinib ko'ring")
@@ -1373,22 +1469,46 @@ async def change_price(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.callback_query(lambda c: c.data == 'name_product')
 async def change_name(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
     await callback_query.message.answer('Zakaz uchun yangi mahsulotni tanlang', reply_markup=products_keyboard())
 
+
 @dp.callback_query(lambda c: c.data.startswith('product:'))
 async def handle_product_selection(callback_query: types.CallbackQuery, state: FSMContext):
     try:
+        await callback_query.message.delete()
         product_name = callback_query.data.split(":", 1)[1]
         data = await state.get_data()
 
         success = change_by_section('product_name', data['product_edit_id'], product_name)
         if success['success'] is True:
-            await callback_query.message.answer("Zakazning nomi muvaffaqiyatli o'zgartildi")
-            await send_message(f"Sana: {datetime.datetime.today().date()}\n🆔 {data['product_edit_id']} dagi zakazning nomi {product_name} ga o'zgartirildi", 156)
-            await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+            product_id = data['product_edit_id']
+            product = get_only_product(product_id)
+            if product['success']:
+                product = product['data']
+                date_formatted = product['created_at'].strftime('%Y-%d-%m')
+                
+                returning_message = f"#Mahsulot_o'zgartirildi\n🆔 Zakaz ID: {product['id']}\n📅Sana: {date_formatted}\n"
+
+                product_name = product['product_name'].split("# ")
+                product_description = product['product_description'].split('# ')
+                product_count = product['product_count'].split('# ')
+                product_per_price = product['product_per_price'].split('# ')
+                product_price = map(int, product['product_price'].split('# '))
+
+                for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
+                    returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
+
+                returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
+                if product['qarzdorlik_description'] is not None:
+                    returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
+                await callback_query.message.answer("Zakazning nomi muvaffaqiyatli o'zgartirildi")
+                await send_message(returning_message, 156)
+                await state.clear()
+                await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
             await state.clear()
         else:
             await callback_query.message.answer("Kechirasiz, dasturda biror xatolik yuz berdi, qaytadan urinib ko'ring")
@@ -1400,11 +1520,13 @@ async def handle_product_selection(callback_query: types.CallbackQuery, state: F
         await state.clear()
         await callback_query.message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.callback_query(lambda c: c.data == 'description_product')
 async def change_description(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
     await callback_query.message.answer("Zakaz uchun yangi izoh yuboring")
     await state.set_state(EditingZakazState.product_description)
+
 
 @dp.message(EditingZakazState.product_description)
 async def change_desc(message: Message, state: FSMContext):
@@ -1413,9 +1535,29 @@ async def change_desc(message: Message, state: FSMContext):
         data = await state.get_data()
         success = change_by_section('product_description', data['product_edit_id'], new_description)
         if success['success'] is True:
-            await message.answer("Zakazning izohi muvaffaqiyatli o'zgartildi")
-            await send_message(f"Sana: {datetime.datetime.today().date()}\n🆔 {data['product_edit_id']} dagi zakazning izohi '{new_description}' ga o'zgartirildi", 156)
-            await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+            product_id = data['product_edit_id']
+            product = get_only_product(product_id)
+            if product['success']:
+                product = product['data']
+                date_formatted = product['created_at'].strftime('%Y-%d-%m')
+                
+                returning_message = f"#Mahsulot_o'zgartirildi\n🆔 Zakaz ID: {product['id']}\n📅Sana: {date_formatted}\n"
+
+                product_name = product['product_name'].split("# ")
+                product_description = product['product_description'].split('# ')
+                product_count = product['product_count'].split('# ')
+                product_per_price = product['product_per_price'].split('# ')
+                product_price = map(int, product['product_price'].split('# '))
+
+                for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
+                    returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
+
+                returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
+                if product['qarzdorlik_description'] is not None:
+                    returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
+                await send_message(returning_message, 156)
+                await state.clear()
+                await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
             await state.clear()
         else:
             await message.answer("Dasturda biror xatolik yuz berdi, iltimos qaytadan urinib ko'ring")
@@ -1427,11 +1569,13 @@ async def change_desc(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
 
+
 @dp.callback_query(lambda c: c.data == 'count_product')
 async def change_count(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.delete()
     await callback_query.message.answer("Zakaz uchun yangi son kiriting")
     await state.set_state(EditingZakazState.product_count)
+
 
 @dp.message(EditingZakazState.product_count)
 async def change_cou(message: Message, state: FSMContext):
@@ -1440,15 +1584,36 @@ async def change_cou(message: Message, state: FSMContext):
         if new_count < 0:
             await message.answer("Iltimos yangi zakaz sonini musbat son ko'rinishida yuboring")
             await state.set_state(EditingZakazState.product_count)
-        
+
         data = await state.get_data()
         success = change_by_section('product_count', data['product_edit_id'], new_count)
         if success['success'] is True:
-            success2 = change_by_section('product_price', data['product_edit_id'], new_count * int(data['product_detail']['product_per_price']))
+            success2 = change_by_section('product_price', data['product_edit_id'],
+                                         new_count * int(data['product_detail']['product_per_price']))
             if success2['success'] is True:
-                await message.answer("Zakazning soni muvaffaqiyatli o'zgartildi")
-                await send_message(f"Sana: {datetime.datetime.today().date()}\n🆔 {data['product_edit_id']} dagi zakaz soni {new_count} ta ga o'zgartirildi", 156)
-                await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
+                product_id = data['product_edit_id']
+                product = get_only_product(product_id)
+                if product['success'] is True:
+                    product = product['data']
+                    date_formatted = product['created_at'].strftime('%Y-%d-%m')
+                    
+                    returning_message = f"#Mahsulot_o'zgartirildi\n🆔 Zakaz ID: {product['id']}\n📅Sana: {date_formatted}\n"
+
+                    product_name = product['product_name'].split("# ")
+                    product_description = product['product_description'].split('# ')
+                    product_count = product['product_count'].split('# ')
+                    product_per_price = product['product_per_price'].split('# ')
+                    product_price = map(int, product['product_price'].split('# '))
+
+                    for name, desc, count, per in zip(product_name, product_description, product_count, product_per_price):
+                        returning_message += f"\n📦 Mahsulot: {name}\n🔢 Soni: {count}\n💰 Sotilgan narxi: {per}\n💬 Izoh: {desc}\n"
+
+                    returning_message += f"\n💰Shartnomaning umumiy narxi: {sum(product_price)}\n💳 To'lov turi: {product['payment_choice']}\n📱Mijozning telefon raqami: {product['client_phone_number']}\n🤵 Sotib oluvchi korxona: {product['client_enterprise']}\n🎫 Shartnoma raqami: {product['contract_number']}\n🏢 Buyurtma qabul qilgan korxona: {product['enterprise_name']}"
+                    if product['qarzdorlik_description'] is not None:
+                        returning_message += f"\n💬 Qarzdorlik uchun izoh: {product['qarzdorlik_description']}"
+                    await send_message(returning_message, 156)
+                    await state.clear()
+                    await message.answer("Kerakli xizmatni tanlang", reply_markup=serving_options())
                 await state.clear()
             else:
                 await message.answer("Dasturda biror xatolik yuz berdi, iltimos qaytadan urinib ko'ring")
@@ -1467,6 +1632,7 @@ async def change_cou(message: Message, state: FSMContext):
 
 async def main():
     await dp.start_polling(bot, skip_updates=True)
+
 
 if __name__ == '__main__':
     asyncio.run(main())
